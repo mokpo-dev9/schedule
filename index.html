@@ -1,0 +1,2203 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>도서관운영팀 근무일정 관리 시스템</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 20px;
+            border-radius: 15px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        .header h1 {
+            color: #2c3e50;
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .nav-btn {
+            background: #4facfe;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+
+        .nav-btn:hover {
+            background: #3498db;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 300px;
+            gap: 20px;
+        }
+
+        .calendar-section {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        .calendar-container {
+            position: relative;
+        }
+
+        .vacation-arrows {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        .vacation-arrow {
+            position: absolute;
+            height: 4px;
+            background: linear-gradient(90deg, #ff9800, #f57c00);
+            border-radius: 2px;
+            display: flex;
+            align-items: center;
+            font-size: 0.7em;
+            color: #fff;
+            font-weight: bold;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.5);
+            border: 1px solid #fff;
+        }
+
+        .vacation-arrow::before {
+            content: '';
+            position: absolute;
+            left: -6px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 0;
+            height: 0;
+            border-top: 3px solid transparent;
+            border-bottom: 3px solid transparent;
+            border-right: 6px solid #ff9800;
+        }
+
+        .vacation-arrow::after {
+            content: '';
+            position: absolute;
+            right: -6px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 0;
+            height: 0;
+            border-top: 3px solid transparent;
+            border-bottom: 3px solid transparent;
+            border-left: 6px solid #f57c00;
+        }
+
+        .vacation-arrow-label {
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            white-space: nowrap;
+            text-shadow: 1px 1px 3px rgba(0,0,0,0.8);
+            font-size: 8px;
+            padding: 0 4px;
+            font-weight: bold;
+        }
+
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 2px;
+            margin-top: 20px;
+        }
+
+        .calendar-header {
+            background: #34495e;
+            color: white;
+            padding: 15px 5px;
+            text-align: center;
+            font-weight: bold;
+            border-radius: 5px;
+        }
+
+        .calendar-day {
+            background: white;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 8px;
+            min-height: 120px;
+            cursor: pointer;
+        }
+
+        .calendar-day:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        .day-number {
+            font-weight: bold;
+            font-size: 1.1em;
+            margin-bottom: 5px;
+        }
+
+        .weekend {
+            background: #ffebee;
+        }
+
+        .holiday {
+            background: #ff5722 !important;
+            color: white !important;
+        }
+
+        .today {
+            background: #4caf50 !important;
+            color: white !important;
+        }
+
+        .staff-status {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            font-size: 0.8em;
+        }
+
+        .status-item {
+            padding: 2px 4px;
+            border-radius: 3px;
+            text-align: center;
+        }
+
+        .status-normal { background: #e8f5e8; color: #2e7d32; }
+        .status-vacation { background: #fff3e0; color: #f57c00; }
+        .status-education { background: #e1f5fe; color: #0277bd; }
+        .status-night { background: #e3f2fd; color: #1976d2; }
+        .status-duty { background: #fce4ec; color: #c2185b; }
+        .status-business { background: #f3e5f5; color: #7b1fa2; }
+        .status-conference { background: #fff8e1; color: #f57f17; }
+        .status-team-event { background: #ffecb3; color: #f57f17; font-weight: bold; }
+
+        .sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .panel {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        .team-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .team-member {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .team-member:hover {
+            background: #e9ecef;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .member-name {
+            font-weight: bold;
+        }
+
+        .member-status {
+            padding: 4px 8px;
+            border-radius: 15px;
+            font-size: 0.8em;
+            font-weight: bold;
+        }
+
+        .action-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 10px;
+            border-radius: 8px;
+            cursor: pointer;
+            margin: 5px;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+        }
+
+        .modal-content {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            width: 90%;
+            max-width: 500px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+
+        .form-group select,
+        .form-group input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+
+        .btn-primary {
+            background: #4facfe;
+            color: white;
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .schedule-manage-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1500;
+        }
+
+        .schedule-manage-content {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            width: 90%;
+            max-width: 600px;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .schedule-item {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-left: 4px solid #4facfe;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .schedule-item.team-schedule {
+            border-left-color: #f57f17;
+            background: #fff8e1;
+        }
+
+        .schedule-info {
+            flex: 1;
+        }
+
+        .schedule-title {
+            font-weight: bold;
+            color: #2c3e50;
+            margin-bottom: 5px;
+        }
+
+        .schedule-details-info {
+            font-size: 0.9em;
+            color: #666;
+        }
+
+        .schedule-actions {
+            display: flex;
+            gap: 5px;
+        }
+
+        .action-btn-small {
+            background: #4facfe;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.8em;
+        }
+
+        .action-btn-small.delete {
+            background: #e74c3c;
+        }
+
+        .no-schedules {
+            text-align: center;
+            color: #999;
+            font-style: italic;
+            padding: 40px 20px;
+        }
+
+        .add-schedule-btn {
+            width: 100%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            margin-top: 15px;
+        }
+
+        .custom-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 2000;
+        }
+
+        .custom-modal-content {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            width: 90%;
+            max-width: 400px;
+            text-align: center;
+        }
+
+        .custom-modal input {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+
+        .legend {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 0.9em;
+        }
+
+        .legend-color {
+            width: 15px;
+            height: 15px;
+            border-radius: 3px;
+        }
+
+        /* 인쇄 스타일 */
+        @media print {
+            body {
+                background: white !important;
+                color: black !important;
+                font-size: 12px;
+                margin: 0;
+                padding: 15px;
+            }
+            
+            .header {
+                background: white !important;
+                border: 2px solid #333 !important;
+                box-shadow: none !important;
+                page-break-inside: avoid;
+                margin-bottom: 15px;
+                padding: 15px;
+            }
+            
+            .header h1 {
+                color: #333 !important;
+                font-size: 18px;
+                margin: 0;
+            }
+            
+            .controls {
+                display: none !important;
+            }
+            
+            .sidebar {
+                display: none !important;
+            }
+            
+            .main-content {
+                grid-template-columns: 1fr !important;
+                gap: 10px;
+            }
+            
+            .calendar-section {
+                background: white !important;
+                border: 2px solid #333 !important;
+                box-shadow: none !important;
+                padding: 15px;
+                page-break-inside: avoid;
+            }
+            
+            .legend {
+                display: flex !important;
+                flex-wrap: wrap;
+                gap: 8px;
+                margin-bottom: 15px;
+                font-size: 10px;
+                justify-content: center;
+                page-break-inside: avoid;
+            }
+            
+            .legend-item {
+                border: 1px solid #333 !important;
+                padding: 2px 4px;
+                border-radius: 3px;
+            }
+            
+            .legend-color {
+                width: 12px !important;
+                height: 12px !important;
+            }
+            
+            .calendar-container {
+                position: relative;
+                page-break-inside: avoid;
+            }
+            
+            .vacation-arrows {
+                display: none !important;
+            }
+            
+            .calendar-grid {
+                display: grid !important;
+                grid-template-columns: repeat(7, 1fr) !important;
+                gap: 1px;
+                border: 2px solid #333;
+                page-break-inside: avoid;
+            }
+            
+            .calendar-header {
+                background: #f0f0f0 !important;
+                color: #333 !important;
+                border: 1px solid #333 !important;
+                font-weight: bold;
+                padding: 8px 4px;
+                text-align: center;
+                font-size: 11px;
+            }
+            
+            .calendar-day {
+                background: white !important;
+                border: 1px solid #333 !important;
+                color: black !important;
+                min-height: 90px !important;
+                padding: 4px;
+                page-break-inside: avoid;
+                font-size: 10px;
+            }
+            
+            .calendar-day.weekend {
+                background: #f8f8f8 !important;
+            }
+            
+            .calendar-day.holiday {
+                background: #ffebee !important;
+                color: #d32f2f !important;
+                font-weight: bold;
+            }
+            
+            .calendar-day.today {
+                background: #e8f5e8 !important;
+                color: #2e7d32 !important;
+                font-weight: bold;
+                border: 2px solid #4caf50 !important;
+            }
+            
+            .day-number {
+                font-weight: bold !important;
+                font-size: 12px !important;
+                margin-bottom: 3px;
+            }
+            
+            .staff-status {
+                display: flex;
+                flex-direction: column;
+                gap: 1px;
+                font-size: 8px;
+            }
+            
+            .status-item {
+                padding: 1px 2px !important;
+                margin: 1px 0 !important;
+                border: 1px solid #666 !important;
+                border-radius: 2px;
+                text-align: center;
+                font-size: 8px !important;
+                line-height: 1.2;
+            }
+            
+            .status-normal { 
+                background: #e8f5e8 !important; 
+                color: #2e7d32 !important; 
+            }
+            .status-vacation { 
+                background: #fff3e0 !important; 
+                color: #f57c00 !important; 
+                font-weight: bold;
+            }
+            .status-education { 
+                background: #e1f5fe !important; 
+                color: #0277bd !important; 
+            }
+            .status-night { 
+                background: #e3f2fd !important; 
+                color: #1976d2 !important; 
+            }
+            .status-duty { 
+                background: #fce4ec !important; 
+                color: #c2185b !important; 
+                font-weight: bold;
+            }
+            .status-business { 
+                background: #f3e5f5 !important; 
+                color: #7b1fa2 !important; 
+            }
+            .status-conference { 
+                background: #fff8e1 !important; 
+                color: #f57f17 !important; 
+            }
+            .status-team-event { 
+                background: #ffecb3 !important; 
+                color: #f57f17 !important; 
+                font-weight: bold !important;
+                border: 2px solid #f57f17 !important;
+            }
+            
+            .print-footer {
+                display: block !important;
+                text-align: center;
+                font-size: 10px;
+                color: #666;
+                margin-top: 20px;
+                padding-top: 15px;
+                border-top: 1px solid #333;
+                page-break-inside: avoid;
+            }
+            
+            .print-signature {
+                margin-top: 30px;
+                text-align: right;
+                font-size: 11px;
+                color: #333;
+            }
+            
+            .print-signature-line {
+                display: inline-block;
+                width: 150px;
+                border-bottom: 1px solid #333;
+                margin-left: 10px;
+                margin-bottom: 3px;
+            }
+        }
+        
+        .print-footer, .print-signature {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📚 도서관운영팀 근무일정 관리</h1>
+            <div class="controls">
+                <button class="nav-btn" onclick="previousMonth()">◀</button>
+                <span id="currentMonth">2025년 8월</span>
+                <button class="nav-btn" onclick="nextMonth()">▶</button>
+                <button class="nav-btn" onclick="openModal()">+ 일정 추가</button>
+                <button class="nav-btn" onclick="printSchedule()">🖨️ 인쇄</button>
+                <button class="nav-btn" onclick="clearAllData()" style="background: #e74c3c;">🗑️ 전체 초기화</button>
+            </div>
+        </div>
+
+        <div class="main-content">
+            <div class="calendar-section">
+                <div class="legend">
+                    <div class="legend-item">
+                        <div class="legend-color status-normal"></div>
+                        <span>정상근무</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color status-vacation"></div>
+                        <span>휴가</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color status-education"></div>
+                        <span>교육</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color status-night"></div>
+                        <span>야간근무</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color status-duty"></div>
+                        <span>당직</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color status-business"></div>
+                        <span>출장</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color status-conference"></div>
+                        <span>회의/행사</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color status-team-event"></div>
+                        <span>전체일정</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: #ff5722;"></div>
+                        <span>공휴일</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: linear-gradient(90deg, #ff9800, #f57c00);"></div>
+                        <span>연속휴가</span>
+                    </div>
+                </div>
+
+                <!-- 연속 휴가 화살표 표시 영역 -->
+                <div class="calendar-container">
+                    <div class="vacation-arrows" id="vacationArrows"></div>
+                    <div class="calendar-grid" id="calendar"></div>
+                </div>
+                
+                <!-- 인쇄시에만 보이는 추가 정보 -->
+                <div class="print-footer">
+                    <div><strong>도서관운영팀 근무일정표</strong></div>
+                    <div>인쇄일: <span id="printDate"></span> | 담당: 도서관운영팀</div>
+                </div>
+                
+                <div class="print-signature">
+                    <div>확인자: <span class="print-signature-line"></span> (인)</div>
+                    <div style="margin-top: 10px;">승인자: <span class="print-signature-line"></span> (인)</div>
+                </div>
+            </div>
+
+            <div class="sidebar">
+                <div class="panel">
+                    <h3>👥 팀원 현황</h3>
+                    <div style="font-size: 0.9em; color: #666; margin-bottom: 10px;">💡 팀원을 클릭하여 수정하세요</div>
+                    <div class="team-list" id="teamList"></div>
+                    <button class="action-btn" onclick="addTeamMember()">팀원 추가</button>
+                </div>
+
+                <div class="panel">
+                    <h3>📋 일정 현황</h3>
+                    <div id="scheduleStatus"></div>
+                    <button class="action-btn" onclick="exportSchedule()">일정 내보내기</button>
+                    <button class="action-btn" onclick="refreshStatus()">새로고침</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 일정 추가/수정 모달 -->
+    <div class="modal" id="scheduleModal">
+        <div class="modal-content">
+            <h3>일정 관리</h3>
+            <div class="form-group">
+                <label for="scheduleTypeSelect">일정 구분</label>
+                <select id="scheduleTypeSelect" onchange="toggleScheduleType()">
+                    <option value="individual">개인 일정</option>
+                    <option value="team">전체 일정</option>
+                </select>
+            </div>
+            <div class="form-group" id="memberSelectGroup">
+                <label for="memberSelect">팀원</label>
+                <select id="memberSelect">
+                    <option value="">팀원을 선택하세요</option>
+                </select>
+            </div>
+            <div class="form-group" id="teamEventTitleGroup" style="display: none;">
+                <label for="teamEventTitle">전체 일정명</label>
+                <input type="text" id="teamEventTitle" placeholder="예: 을지훈련, 정기점검 등">
+            </div>
+            <div class="form-group">
+                <label for="dateTypeSelect">일정 유형</label>
+                <select id="dateTypeSelect" onchange="toggleDateFields()">
+                    <option value="single">단일 날짜</option>
+                    <option value="period">기간 설정</option>
+                </select>
+            </div>
+            <div class="form-group" id="singleDateGroup">
+                <label for="dateInput">날짜</label>
+                <input type="date" id="dateInput">
+            </div>
+            <div class="form-group" id="periodDateGroup" style="display: none;">
+                <label for="startDateInput">시작일</label>
+                <input type="date" id="startDateInput">
+                <label for="endDateInput">종료일</label>
+                <input type="date" id="endDateInput">
+            </div>
+            <div class="form-group" id="statusSelectGroup">
+                <label for="statusSelect">근무 유형</label>
+                <select id="statusSelect">
+                    <option value="normal">정상근무</option>
+                    <option value="vacation">휴가</option>
+                    <option value="education">교육</option>
+                    <option value="night">야간근무</option>
+                    <option value="duty">당직</option>
+                    <option value="business">출장</option>
+                    <option value="conference">회의/행사</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="noteInput">메모 (선택사항)</label>
+                <input type="text" id="noteInput" placeholder="추가 정보를 입력하세요">
+            </div>
+            <button type="button" class="btn btn-secondary" onclick="closeModal()">취소</button>
+            <button type="button" class="btn btn-primary" onclick="saveSchedule()">저장</button>
+        </div>
+    </div>
+
+    <!-- 일정 관리 모달 -->
+    <div class="schedule-manage-modal" id="scheduleManageModal">
+        <div class="schedule-manage-content">
+            <h3 id="scheduleManageTitle">일정 관리</h3>
+            <div id="scheduleList"></div>
+            <button class="add-schedule-btn" onclick="addScheduleToDate()">이 날짜에 일정 추가</button>
+            <button type="button" class="btn btn-secondary" onclick="closeScheduleManageModal()">닫기</button>
+        </div>
+    </div>
+
+    <!-- 커스텀 입력 모달 -->
+    <div class="custom-modal" id="customModal">
+        <div class="custom-modal-content">
+            <h4 id="customModalTitle">입력</h4>
+            <input type="text" id="customInput" placeholder="입력하세요">
+            <button class="btn btn-secondary" id="customCancelBtn">취소</button>
+            <button class="btn btn-primary" id="customOkBtn">확인</button>
+        </div>
+    </div>
+
+    <!-- 팀원 편집 모달 -->
+    <div class="modal" id="memberEditModal">
+        <div class="modal-content">
+            <h3 id="memberEditTitle">팀원 정보 수정</h3>
+            <div class="form-group">
+                <label for="editMemberName">이름</label>
+                <input type="text" id="editMemberName" placeholder="이름을 입력하세요">
+            </div>
+            <div class="form-group">
+                <label for="editMemberPosition">직급</label>
+                <input type="text" id="editMemberPosition" placeholder="직급을 입력하세요">
+            </div>
+            <div style="display: flex; gap: 10px; justify-content: space-between; margin-top: 20px;">
+                <button type="button" class="btn" style="background: #e74c3c; color: white;" onclick="deleteMemberFromEdit()">🗑️ 삭제</button>
+                <div>
+                    <button type="button" class="btn btn-secondary" onclick="closeMemberEditModal()">취소</button>
+                    <button type="button" class="btn btn-primary" onclick="saveMemberEdit()">저장</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 삭제 확인 모달 -->
+    <div class="custom-modal" id="deleteConfirmModal">
+        <div class="custom-modal-content">
+            <h4 id="deleteModalTitle">일정 삭제</h4>
+            <p id="deleteModalMessage">정말로 삭제하시겠습니까?</p>
+            <button class="btn btn-secondary" id="deleteCancelBtn">취소</button>
+            <button class="btn btn-primary" id="deleteConfirmBtn" style="background: #e74c3c;">삭제</button>
+        </div>
+    </div>
+
+    <script>
+        // 전역 변수들
+        let currentYear = 2025;
+        let currentMonth = 8;
+        let selectedDate = null;
+        let editingSchedule = null;
+        let currentEditingMember = null;
+        
+        let teamMembers = [
+            { id: 1, name: '김팀장', position: '팀장' },
+            { id: 2, name: '이사서', position: '사서' },
+            { id: 3, name: '박주임', position: '주임사서' },
+            { id: 4, name: '최사서', position: '사서' },
+            { id: 5, name: '정사서', position: '사서' }
+        ];
+        let scheduleData = {};
+
+        const holidays2025 = {
+            '2025-1-1': '신정',
+            '2025-8-15': '광복절',
+            '2025-10-3': '개천절',
+            '2025-10-9': '한글날',
+            '2025-12-25': '크리스마스'
+        };
+
+        // 공휴일 확인 함수
+        function isHoliday(date) {
+            if (!date || isNaN(date.getTime())) return null;
+            
+            const year = date.getFullYear();
+            const month = date.getMonth() + 1;
+            const day = date.getDate();
+            const dateKey = year + '-' + month + '-' + day;
+            
+            return holidays2025[dateKey] || null;
+        }
+
+        // 삭제 확인 모달
+        function showDeleteConfirm(message) {
+            return new Promise((resolve) => {
+                const modal = document.getElementById('deleteConfirmModal');
+                const messageEl = document.getElementById('deleteModalMessage');
+                const confirmBtn = document.getElementById('deleteConfirmBtn');
+                const cancelBtn = document.getElementById('deleteCancelBtn');
+
+                messageEl.textContent = message;
+                modal.style.display = 'block';
+
+                function cleanup() {
+                    modal.style.display = 'none';
+                    confirmBtn.removeEventListener('click', onConfirm);
+                    cancelBtn.removeEventListener('click', onCancel);
+                }
+
+                function onConfirm() {
+                    cleanup();
+                    resolve(true);
+                }
+
+                function onCancel() {
+                    cleanup();
+                    resolve(false);
+                }
+
+                confirmBtn.addEventListener('click', onConfirm);
+                cancelBtn.addEventListener('click', onCancel);
+            });
+        }
+
+        // 커스텀 입력 모달
+        function showCustomInput(title, placeholder, defaultValue) {
+            return new Promise((resolve) => {
+                const modal = document.getElementById('customModal');
+                const titleEl = document.getElementById('customModalTitle');
+                const input = document.getElementById('customInput');
+                const okBtn = document.getElementById('customOkBtn');
+                const cancelBtn = document.getElementById('customCancelBtn');
+
+                titleEl.textContent = title;
+                input.placeholder = placeholder || '';
+                input.value = defaultValue || '';
+                modal.style.display = 'block';
+                input.focus();
+
+                function cleanup() {
+                    modal.style.display = 'none';
+                    okBtn.removeEventListener('click', onOk);
+                    cancelBtn.removeEventListener('click', onCancel);
+                }
+
+                function onOk() {
+                    const value = input.value.trim();
+                    cleanup();
+                    resolve(value || null);
+                }
+
+                function onCancel() {
+                    cleanup();
+                    resolve(null);
+                }
+
+                okBtn.addEventListener('click', onOk);
+                cancelBtn.addEventListener('click', onCancel);
+            });
+        }
+
+        // 페이지 로드시 초기화
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('페이지 로드 완료, 초기화 시작');
+            loadScheduleData();
+            updateCalendar();
+            updateTeamList();
+            updateMemberSelect();
+            updateScheduleStatus();
+        });
+
+        // 달력 업데이트
+        function updateCalendar() {
+            console.log('달력 업데이트 시작:', currentYear, currentMonth);
+            
+            const calendar = document.getElementById('calendar');
+            const monthHeader = document.getElementById('currentMonth');
+            
+            if (!calendar || !monthHeader) {
+                console.error('달력 요소를 찾을 수 없습니다');
+                return;
+            }
+            
+            monthHeader.textContent = currentYear + '년 ' + currentMonth + '월';
+            calendar.innerHTML = '';
+            
+            // 요일 헤더 추가
+            const headers = ['일', '월', '화', '수', '목', '금', '토'];
+            headers.forEach(header => {
+                const headerDiv = document.createElement('div');
+                headerDiv.className = 'calendar-header';
+                headerDiv.textContent = header;
+                calendar.appendChild(headerDiv);
+            });
+
+            // 달력 날짜 생성
+            const firstDay = new Date(currentYear, currentMonth - 1, 1);
+            const startDate = new Date(firstDay);
+            startDate.setDate(startDate.getDate() - firstDay.getDay());
+
+            for (let i = 0; i < 42; i++) {
+                const currentDate = new Date(startDate);
+                currentDate.setDate(startDate.getDate() + i);
+                
+                const dayDiv = document.createElement('div');
+                dayDiv.className = 'calendar-day';
+                
+                // 현재 월이 아닌 날짜는 반투명 처리
+                if (currentDate.getMonth() !== currentMonth - 1) {
+                    dayDiv.style.opacity = '0.3';
+                    dayDiv.style.pointerEvents = 'none';
+                }
+                
+                // 주말 표시
+                if (currentDate.getDay() === 0 || currentDate.getDay() === 6) {
+                    dayDiv.classList.add('weekend');
+                }
+                
+                // 공휴일 확인
+                const holidayName = isHoliday(currentDate);
+                if (holidayName) {
+                    dayDiv.classList.add('holiday');
+                }
+                
+                // 오늘 날짜 표시
+                const today = new Date();
+                if (currentDate.getFullYear() === today.getFullYear() &&
+                    currentDate.getMonth() === today.getMonth() &&
+                    currentDate.getDate() === today.getDate()) {
+                    dayDiv.classList.add('today');
+                }
+                
+                // 날짜 번호 표시
+                const dayNumber = currentDate.getDate();
+                let dayContent = '<div class="day-number">' + dayNumber + '</div>';
+                
+                // 공휴일 이름 표시
+                if (holidayName) {
+                    dayContent += '<div style="font-size: 0.7em; font-weight: bold;">' + holidayName + '</div>';
+                }
+                
+                // 일정 표시 영역 추가
+                const year = currentDate.getFullYear();
+                const month = currentDate.getMonth() + 1;
+                const day = currentDate.getDate();
+                const statusId = 'status-' + year + '-' + month + '-' + day;
+                
+                dayContent += '<div class="staff-status" id="' + statusId + '"></div>';
+                dayDiv.innerHTML = dayContent;
+                
+                // 클릭 이벤트 추가
+                dayDiv.addEventListener('click', function() {
+                    openScheduleManageModal(new Date(currentDate));
+                });
+                
+                calendar.appendChild(dayDiv);
+            }
+            
+            console.log('달력 생성 완료');
+            updateCalendarSchedules();
+            // 달력 렌더링 완료 후 화살표 업데이트
+            setTimeout(() => {
+                updateVacationArrows();
+            }, 200);
+        }
+
+        // 연속 휴가 화살표 표시 함수
+        function updateVacationArrows() {
+            console.log('=== 연속 휴가 화살표 업데이트 시작 ===');
+            
+            const vacationArrowsContainer = document.getElementById('vacationArrows');
+            if (!vacationArrowsContainer) {
+                console.log('❌ 화살표 컨테이너를 찾을 수 없음');
+                return;
+            }
+            
+            // 기존 화살표 모두 제거
+            const existingArrows = vacationArrowsContainer.children.length;
+            vacationArrowsContainer.innerHTML = '';
+            console.log('🗑️ 기존 화살표', existingArrows, '개 제거됨');
+            
+            // 현재 스케줄 데이터 확인
+            console.log('📅 현재 스케줄 데이터:', scheduleData);
+            
+            // 현재 월의 연속 휴가 찾기
+            const vacationPeriods = findConsecutiveVacations();
+            console.log('🔍 찾은 연속 휴가 기간:', vacationPeriods.length, '개');
+            
+            if (vacationPeriods.length === 0) {
+                console.log('✅ 연속 휴가가 없음 - 화살표 없음');
+                return;
+            }
+            
+            vacationPeriods.forEach((period, index) => {
+                if (period.days.length >= 2) { // 2일 이상 연속 휴가만 표시
+                    console.log('➡️ 화살표 생성:', period.member.name, period.startDay + '~' + period.endDay + '일');
+                    
+                    // 달력이 렌더링될 때까지 잠시 대기
+                    setTimeout(() => {
+                        createVacationArrow(period, index);
+                    }, 50);
+                }
+            });
+            
+            console.log('=== 연속 휴가 화살표 업데이트 완료 ===');
+        }
+
+        // 연속 휴가 기간 찾기
+        function findConsecutiveVacations() {
+            console.log('🔎 연속 휴가 찾기 시작 - 현재 월:', currentYear + '-' + currentMonth);
+            
+            const vacationPeriods = [];
+            const currentMonthKey = `${currentYear}-${currentMonth}`;
+            
+            // 각 팀원별로 연속 휴가 찾기
+            teamMembers.forEach(member => {
+                console.log('👤 팀원 확인:', member.name, '(ID:', member.id + ')');
+                
+                const memberVacations = [];
+                
+                // 현재 월의 모든 날짜에서 해당 팀원의 휴가 찾기
+                for (let day = 1; day <= 31; day++) {
+                    const dateKey = `${currentYear}-${currentMonth}-${day}`;
+                    
+                    if (scheduleData[dateKey] && 
+                        scheduleData[dateKey][member.id] && 
+                        scheduleData[dateKey][member.id].status === 'vacation') {
+                        
+                        // 실제 날짜가 존재하는지 확인
+                        const testDate = new Date(currentYear, currentMonth - 1, day);
+                        if (testDate.getMonth() === currentMonth - 1 && testDate.getDate() === day) {
+                            memberVacations.push({
+                                day: day,
+                                dateKey: dateKey,
+                                member: member
+                            });
+                            console.log('📋 휴가 발견:', member.name, dateKey);
+                        }
+                    }
+                }
+                
+                console.log('📊', member.name, '총 휴가일:', memberVacations.length, '일');
+                
+                // 연속된 휴가 그룹화
+                if (memberVacations.length > 0) {
+                    let currentPeriod = [memberVacations[0]];
+                    
+                    for (let i = 1; i < memberVacations.length; i++) {
+                        if (memberVacations[i].day === memberVacations[i-1].day + 1) {
+                            currentPeriod.push(memberVacations[i]);
+                        } else {
+                            if (currentPeriod.length >= 2) {
+                                const period = {
+                                    member: member,
+                                    days: currentPeriod,
+                                    startDay: currentPeriod[0].day,
+                                    endDay: currentPeriod[currentPeriod.length - 1].day
+                                };
+                                vacationPeriods.push(period);
+                                console.log('✅ 연속휴가 추가:', member.name, period.startDay + '~' + period.endDay + '일');
+                            }
+                            currentPeriod = [memberVacations[i]];
+                        }
+                    }
+                    
+                    // 마지막 그룹 처리
+                    if (currentPeriod.length >= 2) {
+                        const period = {
+                            member: member,
+                            days: currentPeriod,
+                            startDay: currentPeriod[0].day,
+                            endDay: currentPeriod[currentPeriod.length - 1].day
+                        };
+                        vacationPeriods.push(period);
+                        console.log('✅ 연속휴가 추가 (마지막):', member.name, period.startDay + '~' + period.endDay + '일');
+                    }
+                }
+            });
+            
+            console.log('🎯 총 연속휴가 기간:', vacationPeriods.length, '개');
+            return vacationPeriods;
+        }
+
+        // 휴가 화살표 생성
+        function createVacationArrow(period, index) {
+            const vacationArrowsContainer = document.getElementById('vacationArrows');
+            const calendarGrid = document.getElementById('calendar');
+            
+            if (!vacationArrowsContainer || !calendarGrid) return;
+            
+            // 달력의 첫 번째 날이 무슨 요일인지 계산
+            const firstDay = new Date(currentYear, currentMonth - 1, 1);
+            const startWeekday = firstDay.getDay(); // 0: 일요일, 6: 토요일
+            
+            // 각 날짜의 위치 계산 (7열 기준, 헤더 제외)
+            const startCol = (period.startDay + startWeekday - 1) % 7;
+            const endCol = (period.endDay + startWeekday - 1) % 7;
+            const startWeek = Math.floor((period.startDay + startWeekday - 1) / 7);
+            const endWeek = Math.floor((period.endDay + startWeekday - 1) / 7);
+            
+            // 달력 셀의 실제 크기 계산
+            const calendarRect = calendarGrid.getBoundingClientRect();
+            const cellWidth = calendarRect.width / 7;
+            const cellHeight = 120; // CSS에서 설정한 min-height
+            
+            // 같은 주에 있는 경우
+            if (startWeek === endWeek) {
+                const arrow = document.createElement('div');
+                arrow.className = 'vacation-arrow';
+                arrow.setAttribute('data-member-id', period.member.id);
+                arrow.setAttribute('data-start-day', period.startDay);
+                arrow.setAttribute('data-end-day', period.endDay);
+                
+                // 위치 계산 - 실제 날짜 셀 위에 위치
+                const rowPosition = (startWeek + 1) * cellHeight; // +1은 헤더행
+                const leftPosition = startCol * cellWidth + 5; // 좌측 여백
+                const width = (endCol - startCol + 1) * cellWidth - 10; // 좌우 여백 고려
+                
+                arrow.style.left = leftPosition + 'px';
+                arrow.style.width = width + 'px';
+                arrow.style.top = (rowPosition + 20 + (index * 6)) + 'px'; // 날짜 숫자 바로 아래
+                
+                const label = document.createElement('div');
+                label.className = 'vacation-arrow-label';
+                label.textContent = `${period.member.name} (${period.startDay}~${period.endDay}일)`;
+                arrow.appendChild(label);
+                
+                vacationArrowsContainer.appendChild(arrow);
+            } else {
+                // 여러 주에 걸친 경우 - 각 주별로 화살표 생성
+                for (let week = startWeek; week <= endWeek; week++) {
+                    const arrow = document.createElement('div');
+                    arrow.className = 'vacation-arrow';
+                    arrow.setAttribute('data-member-id', period.member.id);
+                    arrow.setAttribute('data-start-day', period.startDay);
+                    arrow.setAttribute('data-end-day', period.endDay);
+                    arrow.setAttribute('data-week', week);
+                    
+                    let weekStartCol, weekEndCol;
+                    
+                    if (week === startWeek) {
+                        weekStartCol = startCol;
+                        weekEndCol = 6;
+                    } else if (week === endWeek) {
+                        weekStartCol = 0;
+                        weekEndCol = endCol;
+                    } else {
+                        weekStartCol = 0;
+                        weekEndCol = 6;
+                    }
+                    
+                    const rowPosition = (week + 1) * cellHeight; // +1은 헤더행
+                    const leftPosition = weekStartCol * cellWidth + 5;
+                    const width = (weekEndCol - weekStartCol + 1) * cellWidth - 10;
+                    
+                    arrow.style.left = leftPosition + 'px';
+                    arrow.style.width = width + 'px';
+                    arrow.style.top = (rowPosition + 20 + (index * 6)) + 'px';
+                    
+                    // 첫 번째 화살표에만 레이블 표시
+                    if (week === startWeek) {
+                        const label = document.createElement('div');
+                        label.className = 'vacation-arrow-label';
+                        label.textContent = `${period.member.name} (${period.startDay}~${period.endDay}일)`;
+                        arrow.appendChild(label);
+                    }
+                    
+                    vacationArrowsContainer.appendChild(arrow);
+                }
+            }
+        }
+
+        // 달력 일정 표시 업데이트
+        function updateCalendarSchedules() {
+            console.log('달력 일정 표시 업데이트 시작');
+            
+            try {
+                const statusElements = document.querySelectorAll('.staff-status');
+                
+                statusElements.forEach(statusEl => {
+                    const statusId = statusEl.id;
+                    if (!statusId || !statusId.startsWith('status-')) return;
+                    
+                    // ID에서 날짜 정보 추출
+                    const dateParts = statusId.replace('status-', '').split('-');
+                    if (dateParts.length !== 3) return;
+                    
+                    const year = parseInt(dateParts[0]);
+                    const month = parseInt(dateParts[1]);
+                    const day = parseInt(dateParts[2]);
+                    
+                    if (isNaN(year) || isNaN(month) || isNaN(day)) return;
+                    
+                    const dateKey = year + '-' + month + '-' + day;
+                    statusEl.innerHTML = '';
+                    
+                    // 해당 날짜에 일정이 있는지 확인
+                    if (scheduleData[dateKey]) {
+                        const daySchedules = scheduleData[dateKey];
+                        
+                        // 전체 일정 표시
+                        if (daySchedules['team']) {
+                            const teamSchedule = daySchedules['team'];
+                            const statusItem = document.createElement('div');
+                            statusItem.className = 'status-item status-team-event';
+                            statusItem.textContent = teamSchedule.title || '전체일정';
+                            statusEl.appendChild(statusItem);
+                        }
+                        
+                        // 개인 일정들 표시
+                        Object.keys(daySchedules).forEach(memberId => {
+                            if (memberId === 'team') return;
+                            
+                            const memberData = teamMembers.find(m => m.id == memberId);
+                            const schedule = daySchedules[memberId];
+                            
+                            if (memberData && schedule) {
+                                const statusItem = document.createElement('div');
+                                statusItem.className = 'status-item status-' + schedule.status;
+                                
+                                const statusText = getStatusText(schedule.status);
+                                statusItem.textContent = memberData.name + ': ' + statusText;
+                                statusEl.appendChild(statusItem);
+                            }
+                        });
+                    }
+                });
+                
+                console.log('달력 일정 표시 업데이트 완료');
+                
+            } catch (error) {
+                console.error('달력 일정 업데이트 중 오류:', error);
+            }
+        }
+
+        // 일정 관리 모달 열기
+        function openScheduleManageModal(date) {
+            selectedDate = date;
+            const year = date.getFullYear();
+            const month = date.getMonth() + 1;
+            const day = date.getDate();
+            const dateKey = `${year}-${month}-${day}`;
+            
+            const modal = document.getElementById('scheduleManageModal');
+            const title = document.getElementById('scheduleManageTitle');
+            const scheduleList = document.getElementById('scheduleList');
+            
+            title.textContent = `${year}년 ${month}월 ${day}일 일정 관리`;
+            scheduleList.innerHTML = '';
+            
+            if (scheduleData[dateKey]) {
+                const daySchedules = scheduleData[dateKey];
+                let hasSchedules = false;
+                
+                // 전체 일정 먼저 표시
+                if (daySchedules['team']) {
+                    hasSchedules = true;
+                    const teamSchedule = daySchedules['team'];
+                    const scheduleItem = createScheduleItem('team', teamSchedule, dateKey);
+                    scheduleList.appendChild(scheduleItem);
+                }
+                
+                // 개인 일정들 표시
+                Object.keys(daySchedules).forEach(memberId => {
+                    if (memberId === 'team') return;
+                    
+                    const memberData = teamMembers.find(m => m.id == memberId);
+                    const schedule = daySchedules[memberId];
+                    
+                    if (memberData && schedule) {
+                        hasSchedules = true;
+                        const scheduleItem = createScheduleItem(memberId, schedule, dateKey, memberData);
+                        scheduleList.appendChild(scheduleItem);
+                    }
+                });
+                
+                if (!hasSchedules) {
+                    scheduleList.innerHTML = '<div class="no-schedules">등록된 일정이 없습니다.</div>';
+                }
+            } else {
+                scheduleList.innerHTML = '<div class="no-schedules">등록된 일정이 없습니다.</div>';
+            }
+            
+            modal.style.display = 'block';
+        }
+        
+        // 일정 아이템 생성
+        function createScheduleItem(memberId, schedule, dateKey, memberData) {
+            const scheduleItem = document.createElement('div');
+            scheduleItem.className = memberId === 'team' ? 'schedule-item team-schedule' : 'schedule-item';
+            
+            let titleText, detailsText;
+            
+            if (memberId === 'team') {
+                titleText = '📅 ' + (schedule.title || '전체일정');
+                detailsText = schedule.note ? '메모: ' + schedule.note : '전체 팀 일정';
+            } else {
+                titleText = '👤 ' + memberData.name + ' (' + memberData.position + ')';
+                detailsText = getStatusText(schedule.status) + (schedule.note ? ' | 메모: ' + schedule.note : '');
+            }
+            
+            const infoDiv = document.createElement('div');
+            infoDiv.className = 'schedule-info';
+            infoDiv.innerHTML = '<div class="schedule-title">' + titleText + '</div><div class="schedule-details-info">' + detailsText + '</div>';
+            
+            const actionsDiv = document.createElement('div');
+            actionsDiv.className = 'schedule-actions';
+            
+            const editBtn = document.createElement('button');
+            editBtn.className = 'action-btn-small';
+            editBtn.textContent = '수정';
+            editBtn.type = 'button';
+            editBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                editScheduleItem(memberId, dateKey);
+            });
+            
+            const deleteBtn = document.createElement('button');
+            deleteBtn.className = 'action-btn-small delete';
+            deleteBtn.textContent = '삭제';
+            deleteBtn.type = 'button';
+            deleteBtn.addEventListener('click', async function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                try {
+                    const scheduleToDelete = scheduleData[dateKey][memberId];
+                    if (!scheduleToDelete) {
+                        alert('삭제할 일정을 찾을 수 없습니다.');
+                        return;
+                    }
+                    
+                    let confirmMessage;
+                    if (memberId === 'team') {
+                        confirmMessage = `"${scheduleToDelete.title || '전체일정'}"을(를) 삭제하시겠습니까?`;
+                    } else {
+                        const memberName = memberData ? memberData.name : '알 수 없는 팀원';
+                        const statusText = getStatusText(scheduleToDelete.status);
+                        confirmMessage = `${memberName}의 "${statusText}" 일정을 삭제하시겠습니까?`;
+                    }
+                    
+                    const userConfirmed = await showDeleteConfirm(confirmMessage);
+                    
+                    if (userConfirmed) {
+                        delete scheduleData[dateKey][memberId];
+                        
+                        if (Object.keys(scheduleData[dateKey]).length === 0) {
+                            delete scheduleData[dateKey];
+                        }
+                        
+                        // 데이터 저장
+                        saveScheduleData();
+                        
+                        updateCalendarSchedules();
+                        updateScheduleStatus();
+                        
+                        if (selectedDate) {
+                            setTimeout(() => {
+                                openScheduleManageModal(selectedDate);
+                            }, 200);
+                        }
+                        
+                        alert('일정이 삭제되었습니다.');
+                    }
+                } catch (error) {
+                    console.error('삭제 중 오류:', error);
+                    alert('삭제 중 오류가 발생했습니다: ' + error.message);
+                }
+            });
+            
+            actionsDiv.appendChild(editBtn);
+            actionsDiv.appendChild(deleteBtn);
+            
+            scheduleItem.appendChild(infoDiv);
+            scheduleItem.appendChild(actionsDiv);
+            
+            return scheduleItem;
+        }
+        
+        function closeScheduleManageModal() {
+            document.getElementById('scheduleManageModal').style.display = 'none';
+            selectedDate = null;
+        }
+        
+        function addScheduleToDate() {
+            if (selectedDate) {
+                openModalForDate(selectedDate);
+                closeScheduleManageModal();
+            } else {
+                alert('날짜를 먼저 선택해주세요.');
+            }
+        }
+        
+        function editScheduleItem(memberId, dateKey) {
+            const schedule = scheduleData[dateKey][memberId];
+            if (!schedule) {
+                alert('일정을 찾을 수 없습니다.');
+                return;
+            }
+            
+            editingSchedule = { memberId: memberId, dateKey: dateKey };
+            
+            if (memberId === 'team') {
+                document.getElementById('scheduleTypeSelect').value = 'team';
+                document.getElementById('teamEventTitle').value = schedule.title || '';
+            } else {
+                document.getElementById('scheduleTypeSelect').value = 'individual';
+                document.getElementById('memberSelect').value = memberId;
+                document.getElementById('statusSelect').value = schedule.status;
+            }
+            
+            const date = new Date(selectedDate);
+            document.getElementById('dateInput').value = date.toISOString().split('T')[0];
+            document.getElementById('noteInput').value = schedule.note || '';
+            document.getElementById('dateTypeSelect').value = 'single';
+            
+            toggleScheduleType();
+            toggleDateFields();
+            
+            closeScheduleManageModal();
+            openModal();
+        }
+
+        // 팀원 목록 업데이트
+        function updateTeamList() {
+            const teamList = document.getElementById('teamList');
+            teamList.innerHTML = '';
+            
+            teamMembers.forEach(member => {
+                const memberDiv = document.createElement('div');
+                memberDiv.className = 'team-member';
+                memberDiv.style.cursor = 'pointer';
+                memberDiv.title = '클릭하여 수정';
+                memberDiv.innerHTML = '<div><div class="member-name">' + member.name + '</div><div style="font-size: 0.8em; color: #666;">' + member.position + '</div></div><div class="member-status status-normal">정상근무</div>';
+                
+                // 팀원 클릭 시 수정 모달 열기
+                memberDiv.addEventListener('click', function() {
+                    editTeamMember(member);
+                });
+                
+                teamList.appendChild(memberDiv);
+            });
+        }
+
+        // 멤버 선택 드롭다운 업데이트
+        function updateMemberSelect() {
+            const select = document.getElementById('memberSelect');
+            select.innerHTML = '<option value="">팀원을 선택하세요</option>';
+            
+            teamMembers.forEach(member => {
+                const option = document.createElement('option');
+                option.value = member.id;
+                option.textContent = member.name + ' (' + member.position + ')';
+                select.appendChild(option);
+            });
+        }
+
+        // 상태 텍스트 변환
+        function getStatusText(status) {
+            const statusMap = {
+                'normal': '정상근무',
+                'vacation': '휴가',
+                'education': '교육',
+                'night': '야간근무', 
+                'duty': '당직',
+                'business': '출장',
+                'conference': '회의/행사',
+                'team-event': '전체일정'
+            };
+            return statusMap[status] || status;
+        }
+
+        // 팀원 수정 함수 (클릭 시 호출)
+        function editTeamMember(member) {
+            currentEditingMember = member;
+            
+            const modal = document.getElementById('memberEditModal');
+            const title = document.getElementById('memberEditTitle');
+            const nameInput = document.getElementById('editMemberName');
+            const positionInput = document.getElementById('editMemberPosition');
+            
+            title.textContent = member.name + '님 정보 수정';
+            nameInput.value = member.name;
+            positionInput.value = member.position;
+            
+            modal.style.display = 'block';
+            nameInput.focus();
+        }
+
+        function closeMemberEditModal() {
+            document.getElementById('memberEditModal').style.display = 'none';
+            currentEditingMember = null;
+        }
+
+        function saveMemberEdit() {
+            if (!currentEditingMember) return;
+            
+            const nameInput = document.getElementById('editMemberName');
+            const positionInput = document.getElementById('editMemberPosition');
+            
+            const newName = nameInput.value.trim();
+            const newPosition = positionInput.value.trim();
+            
+            if (!newName) {
+                alert('이름을 입력해주세요.');
+                nameInput.focus();
+                return;
+            }
+            
+            if (!newPosition) {
+                alert('직급을 입력해주세요.');
+                positionInput.focus();
+                return;
+            }
+            
+            // 이름 중복 체크
+            const nameExists = teamMembers.some(member => 
+                member.id !== currentEditingMember.id && member.name === newName
+            );
+            
+            if (nameExists) {
+                alert('이미 같은 이름의 팀원이 존재합니다.');
+                nameInput.focus();
+                return;
+            }
+            
+            // 변경사항 저장
+            const oldName = currentEditingMember.name;
+            currentEditingMember.name = newName;
+            currentEditingMember.position = newPosition;
+            
+            updateAfterMemberChange();
+            closeMemberEditModal();
+            
+            if (oldName !== newName || currentEditingMember.position !== newPosition) {
+                alert('팀원 정보가 수정되었습니다.');
+            }
+        }
+
+        async function deleteMemberFromEdit() {
+            if (!currentEditingMember) return;
+            
+            const confirmed = await showDeleteConfirm(
+                '정말로 ' + currentEditingMember.name + '님을 삭제하시겠습니까?\n\n삭제하면 해당 팀원의 모든 일정도 함께 삭제됩니다.'
+            );
+            
+            if (confirmed) {
+                // 팀원의 모든 일정 삭제
+                Object.keys(scheduleData).forEach(dateKey => {
+                    if (scheduleData[dateKey][currentEditingMember.id]) {
+                        delete scheduleData[dateKey][currentEditingMember.id];
+                        if (Object.keys(scheduleData[dateKey]).length === 0) {
+                            delete scheduleData[dateKey];
+                        }
+                    }
+                });
+                
+                // 팀원 삭제
+                const memberIndex = teamMembers.findIndex(m => m.id === currentEditingMember.id);
+                if (memberIndex !== -1) {
+                    teamMembers.splice(memberIndex, 1);
+                }
+                
+                // 데이터 저장
+                saveScheduleData();
+                
+                const memberName = currentEditingMember.name;
+                updateAfterMemberChange();
+                closeMemberEditModal();
+                alert(memberName + '님이 삭제되었습니다.');
+            }
+        }
+
+        function updateAfterMemberChange() {
+            updateTeamList();
+            updateMemberSelect();
+            updateCalendarSchedules();
+            updateScheduleStatus();
+            // 화살표는 약간의 지연 후 업데이트
+            setTimeout(() => {
+                updateVacationArrows();
+            }, 100);
+        }
+
+        // 일정 모달 관련 함수들
+        function openModal() {
+            const modal = document.getElementById('scheduleModal');
+            modal.style.display = 'block';
+        }
+
+        function closeModal() {
+            document.getElementById('scheduleModal').style.display = 'none';
+            
+            document.getElementById('scheduleTypeSelect').value = 'individual';
+            document.getElementById('memberSelect').value = '';
+            document.getElementById('teamEventTitle').value = '';
+            document.getElementById('dateInput').value = '';
+            document.getElementById('startDateInput').value = '';
+            document.getElementById('endDateInput').value = '';
+            document.getElementById('statusSelect').value = 'normal';
+            document.getElementById('noteInput').value = '';
+            document.getElementById('dateTypeSelect').value = 'single';
+            
+            editingSchedule = null;
+            
+            toggleScheduleType();
+            toggleDateFields();
+        }
+
+        function toggleScheduleType() {
+            const scheduleType = document.getElementById('scheduleTypeSelect').value;
+            const memberGroup = document.getElementById('memberSelectGroup');
+            const titleGroup = document.getElementById('teamEventTitleGroup');
+            const statusGroup = document.getElementById('statusSelectGroup');
+            
+            if (scheduleType === 'team') {
+                memberGroup.style.display = 'none';
+                titleGroup.style.display = 'block';
+                statusGroup.style.display = 'none';
+            } else {
+                memberGroup.style.display = 'block';
+                titleGroup.style.display = 'none';
+                statusGroup.style.display = 'block';
+            }
+        }
+
+        function toggleDateFields() {
+            const dateType = document.getElementById('dateTypeSelect').value;
+            const singleGroup = document.getElementById('singleDateGroup');
+            const periodGroup = document.getElementById('periodDateGroup');
+            
+            if (dateType === 'single') {
+                singleGroup.style.display = 'block';
+                periodGroup.style.display = 'none';
+            } else {
+                singleGroup.style.display = 'none';
+                periodGroup.style.display = 'block';
+            }
+        }
+
+        function openModalForDate(date) {
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            const dateString = `${year}-${month}-${day}`;
+            
+            document.getElementById('dateInput').value = dateString;
+            document.getElementById('startDateInput').value = dateString;
+            document.getElementById('endDateInput').value = dateString;
+            
+            document.getElementById('scheduleTypeSelect').value = 'individual';
+            document.getElementById('dateTypeSelect').value = 'single';
+            
+            toggleScheduleType();
+            toggleDateFields();
+            
+            openModal();
+        }
+
+        // 월 네비게이션
+        function previousMonth() {
+            currentMonth--;
+            if (currentMonth < 1) {
+                currentMonth = 12;
+                currentYear--;
+            }
+            updateCalendar();
+            updateScheduleStatus();
+            updateVacationArrows(); // 연속 휴가 화살표 업데이트 추가
+        }
+
+        function nextMonth() {
+            currentMonth++;
+            if (currentMonth > 12) {
+                currentMonth = 1;
+                currentYear++;
+            }
+            updateCalendar();
+            updateScheduleStatus();
+        }
+
+        // 일정 저장
+        function saveSchedule() {
+            console.log('일정 저장 시작');
+            
+            try {
+                const scheduleType = document.getElementById('scheduleTypeSelect').value;
+                const memberId = document.getElementById('memberSelect').value;
+                const teamEventTitle = document.getElementById('teamEventTitle').value;
+                const status = document.getElementById('statusSelect').value;
+                const note = document.getElementById('noteInput').value;
+                const dateType = document.getElementById('dateTypeSelect').value;
+                
+                // 유효성 검사
+                if (scheduleType === 'individual') {
+                    if (!memberId) {
+                        alert('팀원을 선택해주세요.');
+                        return;
+                    }
+                    if (!status) {
+                        alert('근무 유형을 선택해주세요.');
+                        return;
+                    }
+                } else if (scheduleType === 'team') {
+                    if (!teamEventTitle.trim()) {
+                        alert('전체 일정명을 입력해주세요.');
+                        return;
+                    }
+                }
+                
+                // 날짜 처리
+                let targetDates = [];
+                
+                if (dateType === 'single') {
+                    const dateValue = document.getElementById('dateInput').value;
+                    
+                    if (!dateValue) {
+                        alert('날짜를 선택해주세요.');
+                        return;
+                    }
+                    
+                    const parts = dateValue.split('-');
+                    const dateKey = `${parts[0]}-${parseInt(parts[1])}-${parseInt(parts[2])}`;
+                    targetDates = [dateKey];
+                    
+                } else if (dateType === 'period') {
+                    const startDateValue = document.getElementById('startDateInput').value;
+                    const endDateValue = document.getElementById('endDateInput').value;
+                    
+                    if (!startDateValue || !endDateValue) {
+                        alert('시작일과 종료일을 모두 선택해주세요.');
+                        return;
+                    }
+                    
+                    const startDate = new Date(startDateValue);
+                    const endDate = new Date(endDateValue);
+                    
+                    if (startDate > endDate) {
+                        alert('시작일이 종료일보다 늦을 수 없습니다.');
+                        return;
+                    }
+                    
+                    for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
+                        const year = d.getFullYear();
+                        const month = d.getMonth() + 1;
+                        const day = d.getDate();
+                        targetDates.push(`${year}-${month}-${day}`);
+                    }
+                }
+                
+                if (targetDates.length === 0) {
+                    alert('저장할 날짜가 없습니다.');
+                    return;
+                }
+                
+                // 일정 데이터 저장
+                targetDates.forEach(dateKey => {
+                    if (!scheduleData[dateKey]) {
+                        scheduleData[dateKey] = {};
+                    }
+                    
+                    if (scheduleType === 'team') {
+                        scheduleData[dateKey]['team'] = {
+                            title: teamEventTitle.trim(),
+                            note: note.trim()
+                        };
+                    } else if (scheduleType === 'individual') {
+                        scheduleData[dateKey][memberId] = {
+                            status: status,
+                            note: note.trim()
+                        };
+                    }
+                });
+                
+                // 데이터 저장
+                saveScheduleData();
+                
+                // 화면 업데이트
+                updateCalendarSchedules();
+                updateScheduleStatus();
+                // 화살표는 약간의 지연 후 업데이트
+                setTimeout(() => {
+                    updateVacationArrows();
+                }, 100);
+                
+                // 성공 메시지
+                let successMessage;
+                if (scheduleType === 'team') {
+                    successMessage = `"${teamEventTitle}" 전체 일정이 저장되었습니다.`;
+                } else {
+                    const memberName = teamMembers.find(m => m.id == memberId)?.name || '선택된 팀원';
+                    const statusText = getStatusText(status);
+                    successMessage = `${memberName}의 "${statusText}" 일정이 저장되었습니다.`;
+                }
+                
+                alert(successMessage);
+                closeModal();
+                
+            } catch (error) {
+                console.error('일정 저장 중 오류:', error);
+                alert('일정 저장 중 오류가 발생했습니다: ' + error.message);
+            }
+        }
+
+        // 데이터 관리
+        function saveScheduleData() {
+            try {
+                const data = {
+                    teamMembers: teamMembers,
+                    scheduleData: scheduleData,
+                    lastSaved: new Date().toISOString()
+                };
+                localStorage.setItem('libraryTeamSchedule', JSON.stringify(data));
+                console.log('일정 데이터가 브라우저에 저장되었습니다.');
+            } catch (error) {
+                console.error('데이터 저장 중 오류:', error);
+            }
+        }
+
+        function loadScheduleData() {
+            try {
+                const savedData = localStorage.getItem('libraryTeamSchedule');
+                if (savedData) {
+                    const data = JSON.parse(savedData);
+                    
+                    if (data.teamMembers) {
+                        teamMembers = data.teamMembers;
+                    }
+                    
+                    if (data.scheduleData) {
+                        scheduleData = data.scheduleData;
+                    }
+                    
+                    console.log('저장된 데이터를 불러왔습니다. 마지막 저장:', data.lastSaved);
+                } else {
+                    console.log('저장된 데이터가 없습니다. 기본 데이터를 사용합니다.');
+                }
+            } catch (error) {
+                console.error('데이터 로드 중 오류:', error);
+                console.log('기본 데이터를 사용합니다.');
+            }
+        }
+
+        // 일정 현황 업데이트
+        function updateScheduleStatus() {
+            console.log('일정 현황 업데이트 시작');
+            const statusContainer = document.getElementById('scheduleStatus');
+            
+            const currentMonthKey = `${currentYear}-${currentMonth}`;
+            let monthlySchedules = [];
+            let statusCounts = {};
+            let teamEvents = [];
+            
+            const statusTypes = ['vacation', 'education', 'night', 'duty', 'business', 'conference'];
+            statusTypes.forEach(type => statusCounts[type] = 0);
+            
+            Object.keys(scheduleData).forEach(dateKey => {
+                if (dateKey.startsWith(currentMonthKey)) {
+                    const daySchedules = scheduleData[dateKey];
+                    
+                    if (daySchedules['team']) {
+                        const date = dateKey.split('-')[2];
+                        teamEvents.push({
+                            date: date + '일',
+                            title: daySchedules['team'].title
+                        });
+                    }
+                    
+                    Object.keys(daySchedules).forEach(memberId => {
+                        if (memberId === 'team') return;
+                        
+                        const schedule = daySchedules[memberId];
+                        const memberData = teamMembers.find(m => m.id == memberId);
+                        
+                        if (memberData && schedule) {
+                            if (schedule.status !== 'normal' && statusCounts[schedule.status] !== undefined) {
+                                statusCounts[schedule.status]++;
+                            }
+                            
+                            monthlySchedules.push({
+                                date: dateKey.split('-')[2] + '일',
+                                member: memberData.name,
+                                status: getStatusText(schedule.status),
+                                note: schedule.note || ''
+                            });
+                        }
+                    });
+                }
+            });
+            
+            let html = `<div style="margin-bottom: 15px;"><strong>${currentYear}년 ${currentMonth}월 일정 현황</strong></div>`;
+            
+            if (teamEvents.length > 0) {
+                html += '<div style="margin-bottom: 10px; padding: 8px; background: #fff8e1; border-radius: 5px; border-left: 3px solid #f57f17;">';
+                html += '<div style="font-weight: bold; color: #f57f17; margin-bottom: 5px;">📅 전체 일정</div>';
+                teamEvents.forEach(event => {
+                    html += `<div style="font-size: 0.9em;">• ${event.date}: ${event.title}</div>`;
+                });
+                html += '</div>';
+            }
+            
+            const hasIndividualSchedules = Object.values(statusCounts).some(count => count > 0);
+            if (hasIndividualSchedules) {
+                html += '<div style="margin-bottom: 10px; padding: 8px; background: #f8f9fa; border-radius: 5px;">';
+                html += '<div style="font-weight: bold; margin-bottom: 5px;">📊 근무 유형별 현황</div>';
+                
+                statusTypes.forEach(type => {
+                    if (statusCounts[type] > 0) {
+                        html += `<div style="font-size: 0.9em;">• ${getStatusText(type)}: ${statusCounts[type]}건</div>`;
+                    }
+                });
+                html += '</div>';
+            }
+            
+            if (monthlySchedules.length > 0) {
+                html += '<div style="padding: 8px; background: #e3f2fd; border-radius: 5px;">';
+                html += '<div style="font-weight: bold; margin-bottom: 5px;">📋 개인 일정 목록</div>';
+                
+                monthlySchedules.sort((a, b) => {
+                    return parseInt(a.date) - parseInt(b.date);
+                });
+                
+                monthlySchedules.slice(0, 8).forEach(schedule => {
+                    html += `<div style="font-size: 0.8em; margin-bottom: 2px;">`;
+                    html += `• ${schedule.date} ${schedule.member}: ${schedule.status}`;
+                    if (schedule.note) {
+                        html += ` (${schedule.note})`;
+                    }
+                    html += `</div>`;
+                });
+                
+                if (monthlySchedules.length > 8) {
+                    html += `<div style="font-size: 0.8em; color: #666; margin-top: 5px;">... 외 ${monthlySchedules.length - 8}건</div>`;
+                }
+                html += '</div>';
+            }
+            
+            if (teamEvents.length === 0 && monthlySchedules.length === 0) {
+                html += '<div style="text-align: center; color: #999; font-style: italic; padding: 20px;">이번 달에 등록된 일정이 없습니다.</div>';
+            }
+            
+            statusContainer.innerHTML = html;
+            console.log('일정 현황 업데이트 완료');
+        }
+
+        // 팀원 추가
+        async function addTeamMember() {
+            const name = await showCustomInput('새 팀원 추가', '이름을 입력하세요');
+            if (!name) return;
+            
+            const position = await showCustomInput('직급 입력', '직급을 입력하세요');
+            if (!position) return;
+            
+            const newId = teamMembers.length > 0 ? Math.max(...teamMembers.map(m => m.id)) + 1 : 1;
+            const newMember = { 
+                id: newId, 
+                name: name, 
+                position: position 
+            };
+            
+            teamMembers.push(newMember);
+            
+            // 데이터 저장
+            saveScheduleData();
+            
+            updateTeamList();
+            updateMemberSelect();
+            
+            alert(name + ' 팀원이 추가되었습니다.');
+        }
+
+        // 기타 함수들
+        function refreshStatus() {
+            updateScheduleStatus();
+            alert('일정 현황이 새로고침되었습니다.');
+        }
+
+        // 전체 데이터 초기화 함수
+        async function clearAllData() {
+            const confirmed = await showDeleteConfirm(
+                '⚠️ 주의: 모든 팀원 정보와 일정 데이터가 삭제됩니다.\n\n정말로 전체 초기화를 진행하시겠습니까?'
+            );
+            
+            if (confirmed) {
+                try {
+                    // localStorage에서 데이터 제거
+                    localStorage.removeItem('libraryTeamSchedule');
+                    
+                    // 메모리 데이터 초기화
+                    teamMembers = [
+                        { id: 1, name: '김팀장', position: '팀장' },
+                        { id: 2, name: '이사서', position: '사서' },
+                        { id: 3, name: '박주임', position: '주임사서' },
+                        { id: 4, name: '최사서', position: '사서' },
+                        { id: 5, name: '정사서', position: '사서' }
+                    ];
+                    scheduleData = {};
+                    
+                    // 화면 업데이트
+                    updateTeamList();
+                    updateMemberSelect();
+                    updateCalendarSchedules();
+                    updateScheduleStatus();
+                    updateVacationArrows();
+                    
+                    alert('✅ 모든 데이터가 초기화되었습니다.');
+                } catch (error) {
+                    console.error('데이터 초기화 중 오류:', error);
+                    alert('❌ 데이터 초기화 중 오류가 발생했습니다.');
+                }
+            }
+        }
+
+        function printSchedule() {
+            console.log('브라우저 인쇄 기능 실행');
+            
+            try {
+                // 인쇄 날짜 설정
+                const printDateEl = document.getElementById('printDate');
+                if (printDateEl) {
+                    const now = new Date();
+                    const printDate = `${now.getFullYear()}년 ${now.getMonth() + 1}월 ${now.getDate()}일`;
+                    printDateEl.textContent = printDate;
+                }
+                
+                // 인쇄 대화상자 열기
+                window.print();
+                
+            } catch (error) {
+                console.error('인쇄 중 오류:', error);
+                alert('인쇄 중 오류가 발생했습니다.\n\n브라우저에서 Ctrl+P (Windows) 또는 Cmd+P (Mac)를 직접 사용해보세요.');
+            }
+        }
+
+        function exportSchedule() {
+            const currentMonthData = {};
+            const monthKey = currentYear + '-' + currentMonth;
+            
+            Object.keys(scheduleData).forEach(date => {
+                if (date.startsWith(monthKey)) {
+                    currentMonthData[date] = scheduleData[date];
+                }
+            });
+            
+            const exportData = {
+                year: currentYear,
+                month: currentMonth,
+                teamMembers: teamMembers,
+                scheduleData: currentMonthData,
+                exportDate: new Date().toISOString()
+            };
+            
+            const dataStr = JSON.stringify(exportData, null, 2);
+            const dataBlob = new Blob([dataStr], {type: 'application/json'});
+            const url = URL.createObjectURL(dataBlob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = '도서관운영팀_일정_' + currentYear + '년' + currentMonth + '월.json';
+            link.click();
+            URL.revokeObjectURL(url);
+            
+            alert('일정이 JSON 파일로 내보내기 되었습니다.');
+        }
+    </script>
+</body>
+</html>
